@@ -69,10 +69,8 @@ def handle_join(message):
     markup.row(types.KeyboardButton("/cancel"))
     bot.send_message(message.chat.id, 'Enter ID of friend: ', reply_markup=markup)
 
-    @bot.message_handler(content_types='text')
+    @bot.message_handler()
     def nextWord(message2):
-        print(message2.text)
-        print(startedGamesID)
         if message2.text not in startedGamesID:
             bot.send_message(message2.chat.id, 'This game is not found')
         else:
