@@ -11,6 +11,7 @@ startedGamesID = set()
 
 
 class Status(Enum):
+
     MAIN_MENU = 0
     CREATE = 1
     JOIN = 2
@@ -23,22 +24,24 @@ class User:
         self.game_id = game_id
 
 
-userSet = set()
+userSet = {}
 
 
-def getUserStatus(chat_id):
-    for user in userSet:
-        if user[0] == chat_id:
-            return user[1].status
+def getUser(chat_id):
+    if userSet.get(chat_id) is not None:
+        return userSet[chat_id]
     raise Exception("User not found")
 
 
 def updateUser(chat_id, status=Status.MAIN_MENU, game_id=0):
-    userSet.add((chat_id, User(chat_id, status, game_id)))
+    userSet.update({chat_id: User(chat_id, status, str(game_id))})
 
 
 @bot.message_handler(commands=['start'])
 def handle_start(message):
+
+    print(str(message.chat.id) + ' ' + message.text)
+
     updateUser(message.chat.id, status=Status.MAIN_MENU)
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     markup.row(types.KeyboardButton("/create"))
@@ -48,11 +51,14 @@ def handle_start(message):
 
 @bot.message_handler(commands=['create'])
 def handle_id_generator(message):
+
+    print(str(message.chat.id) + ' ' + message.text)
+
     gameID = randrange(1000, 9999)
     while gameID in startedGamesID:
         gameID = randrange(1000, 9999)
 
-    startedGamesID.add(gameID)
+    startedGamesID.add(str(gameID))
 
     updateUser(message.chat.id, status=Status.CREATE, game_id=gameID)
 
@@ -63,30 +69,49 @@ def handle_id_generator(message):
 
 @bot.message_handler(commands=['join'])
 def handle_join(message):
+
+    print(str(message.chat.id) + ' ' + message.text)
+
     updateUser(message.chat.id, status=Status.JOIN)
 
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     markup.row(types.KeyboardButton("/cancel"))
-    bot.send_message(message.chat.id, 'Enter ID of friend: ', reply_markup=markup)
+    sent = bot.send_message(message.chat.id, 'Enter ID of friend: ', reply_markup=markup)
+    bot.register_next_step_handler(sent, checkPin)
 
-    @bot.message_handler()
-    def nextWord(message2):
-        if message2.text not in startedGamesID:
-            bot.send_message(message2.chat.id, 'This game is not found')
-        else:
-            ###
-            bot.send_message(message2.chat.id, 'Game found!')
+
+
+def checkPin(message):
+
+    for i in startedGamesID:
+        print(i)
+
+    if message.text not in startedGamesID:
+        bot.send_message(message.chat.id, 'This game is not found')
+        handle_start(message)
+    else:
+        ###
+        bot.send_message(message.chat.id, 'Game found!')
 
 
 @bot.message_handler(commands=['cancel'])
 def handle_cancel(message):
-    if (getUserStatus(message.chat.id) == Status.CREATE or
-            getUserStatus(message.chat.id) == Status.JOIN):
+
+    print(str(message.chat.id) + ' ' + message.text)
+
+    try:
+        getUser(message.chat.id)
+    except Exception:
         updateUser(message.chat.id, status=Status.MAIN_MENU)
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        markup.row(types.KeyboardButton("/create"))
-        markup.row(types.KeyboardButton("/join"))
-        bot.send_message(message.chat.id, 'Welcome!\nFind yourself an opponent!', reply_markup=markup)
+        handle_start(message)
+        return
+    if getUser(message.chat.id).status == Status.CREATE:
+        startedGamesID.remove(getUser(message.chat.id).game_id)
+        updateUser(message.chat.id, status=Status.MAIN_MENU)
+        handle_start(message)
+    elif getUser(message.chat.id).status == Status.JOIN:
+        updateUser(message.chat.id, status=Status.MAIN_MENU)
+        handle_start(message)
 
 
 bot.infinity_polling()
