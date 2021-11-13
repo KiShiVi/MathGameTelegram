@@ -11,7 +11,6 @@ startedGamesID = set()
 
 
 class Status(Enum):
-
     MAIN_MENU = 0
     CREATE = 1
     JOIN = 2
@@ -33,13 +32,20 @@ def getUser(chat_id):
     raise Exception("User not found")
 
 
+def getOpponent(game_id, not_chat_id):
+    for key in userSet.keys():
+        if userSet[key].game_id == game_id and \
+                key != not_chat_id:
+            return userSet[key]
+    raise Exception("Opponent not found")
+
+
 def updateUser(chat_id, status=Status.MAIN_MENU, game_id=0):
     userSet.update({chat_id: User(chat_id, status, str(game_id))})
 
 
 @bot.message_handler(commands=['start'])
 def handle_start(message):
-
     print(str(message.chat.id) + ' ' + message.text)
 
     updateUser(message.chat.id, status=Status.MAIN_MENU)
@@ -51,7 +57,6 @@ def handle_start(message):
 
 @bot.message_handler(commands=['create'])
 def handle_id_generator(message):
-
     print(str(message.chat.id) + ' ' + message.text)
 
     gameID = randrange(1000, 9999)
@@ -69,7 +74,6 @@ def handle_id_generator(message):
 
 @bot.message_handler(commands=['join'])
 def handle_join(message):
-
     print(str(message.chat.id) + ' ' + message.text)
 
     updateUser(message.chat.id, status=Status.JOIN)
@@ -80,9 +84,7 @@ def handle_join(message):
     bot.register_next_step_handler(sent, checkPin)
 
 
-
 def checkPin(message):
-
     for i in startedGamesID:
         print(i)
 
@@ -92,13 +94,11 @@ def checkPin(message):
     else:
         ###
         bot.send_message(message.chat.id, 'Game found!')
+        bot.send_message(getOpponent(message.text, message.chat.id).chat_id, 'Game found!')
 
 
 @bot.message_handler(commands=['cancel'])
 def handle_cancel(message):
-
-    print(str(message.chat.id) + ' ' + message.text)
-
     try:
         getUser(message.chat.id)
     except Exception:
