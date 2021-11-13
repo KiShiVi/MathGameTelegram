@@ -14,13 +14,16 @@ class Status(Enum):
     MAIN_MENU = 0
     CREATE = 1
     JOIN = 2
+    GAME = 3
 
 
 class User:
-    def __init__(self, chat_id, status=Status.MAIN_MENU, game_id=0):
+    def __init__(self, chat_id, status=Status.MAIN_MENU, game_id=0, message=None):
         self.chat_id = chat_id
         self.status = status
         self.game_id = game_id
+        self.message = message
+        self.points = 0
 
 
 userSet = {}
@@ -40,15 +43,18 @@ def getOpponent(game_id, not_chat_id):
     raise Exception("Opponent not found")
 
 
-def updateUser(chat_id, status=Status.MAIN_MENU, game_id=0):
-    userSet.update({chat_id: User(chat_id, status, str(game_id))})
+def updateUser(chat_id, status=Status.MAIN_MENU, game_id=0, message=None, points=0):
+    if message is None and userSet.get(chat_id) is not None:
+        userSet.update({chat_id: User(chat_id, status, str(game_id), userSet[chat_id].message), points})
+    else:
+        userSet.update({chat_id: User(chat_id, status, str(game_id), message, points)})
 
 
 @bot.message_handler(commands=['start'])
 def handle_start(message):
     print(str(message.chat.id) + ' ' + message.text)
 
-    updateUser(message.chat.id, status=Status.MAIN_MENU)
+    updateUser(message.chat.id, status=Status.MAIN_MENU, message=message)
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     markup.row(types.KeyboardButton("/create"))
     markup.row(types.KeyboardButton("/join"))
@@ -65,7 +71,7 @@ def handle_id_generator(message):
 
     startedGamesID.add(str(gameID))
 
-    updateUser(message.chat.id, status=Status.CREATE, game_id=gameID)
+    updateUser(message.chat.id, status=Status.CREATE, game_id=gameID, message=message)
 
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     markup.add(types.KeyboardButton("/cancel"))
@@ -76,7 +82,7 @@ def handle_id_generator(message):
 def handle_join(message):
     print(str(message.chat.id) + ' ' + message.text)
 
-    updateUser(message.chat.id, status=Status.JOIN)
+    updateUser(message.chat.id, status=Status.JOIN, message=message)
 
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     markup.row(types.KeyboardButton("/cancel"))
@@ -113,6 +119,19 @@ def handle_cancel(message):
         handle_start(message)
     elif getUser(message.chat.id).status == Status.JOIN:
         updateUser(message.chat.id, status=Status.MAIN_MENU)
+        handle_start(message)
+    elif getUser(message.chat.id).status == Status.GAME:
+
+        opponent = getOpponent(getUser(message.chat.id).game_id, message.chat.id)
+
+        bot.send_message(message.chat.id, 'Game stopped!')
+        bot.send_message(opponent.chat_id, 'Game stopped!')
+
+        updateUser(opponent.chat_id,
+                   Status.MAIN_MENU)
+        updateUser(message.chat.id, Status.MAIN_MENU)
+
+        handle_start(opponent.message)
         handle_start(message)
 
 
