@@ -18,12 +18,12 @@ class Status(Enum):
 
 
 class User:
-    def __init__(self, chat_id, status=Status.MAIN_MENU, game_id=0, message=None):
+    def __init__(self, chat_id, status=Status.MAIN_MENU, game_id=0, message=None, points=0):
         self.chat_id = chat_id
         self.status = status
         self.game_id = game_id
         self.message = message
-        self.points = 0
+        self.points = points
 
 
 userSet = {}
@@ -45,7 +45,7 @@ def getOpponent(game_id, not_chat_id):
 
 def updateUser(chat_id, status=Status.MAIN_MENU, game_id=0, message=None, points=0):
     if message is None and userSet.get(chat_id) is not None:
-        userSet.update({chat_id: User(chat_id, status, str(game_id), userSet[chat_id].message), points})
+        userSet.update({chat_id: User(chat_id, status, str(game_id), userSet[chat_id].message, points)})
     else:
         userSet.update({chat_id: User(chat_id, status, str(game_id), message, points)})
 
@@ -103,6 +103,66 @@ def checkPin(message):
         bot.send_message(getOpponent(message.text, message.chat.id).chat_id, 'Game found!')
         updateUser(message.chat.id, Status.GAME, getUser(message.chat.id).game_id)
         updateUser(getOpponent(message.text, message.chat.id).chat_id, Status.GAME, getUser(message.chat.id).game_id)
+        preGame(getUser(message.chat.id), getOpponent(getUser(message.chat.id).game_id, message.chat.id))
+
+
+def preGame(player1, player2):
+    # if player1.points >= 5 or player2.points >= 2:
+    #     raise Exception('coming soon')
+    a1 = [randrange(10, 99) for i in range(20)]
+    b1 = [randrange(10, 99) for i in range(20)]
+    a2 = a1.copy()
+    b2 = b1.copy()
+    game(player1, player2, a1, b1)
+    game(player2, player1, a2, b2)
+
+
+def game(player, opponent, a, b):
+    if player.points >= 5 and getOpponent(opponent.game_id, player.chat_id).points >= 5:
+        bot.send_message(player.chat_id, 'Draw!')
+
+        bot.clear_step_handler(player.message)
+        bot.clear_step_handler(opponent.message)
+
+        handle_start(player.message)
+
+        updateUser(player.chat_id, Status.MAIN_MENU, 0, None, 0)
+        updateUser(opponent.chat_id, Status.MAIN_MENU, 0, None, 0)
+
+        return
+
+    elif player.points >= 5:
+        bot.send_message(opponent.chat_id, 'You Lose!')
+        bot.send_message(player.chat_id, 'You Win!')
+
+        bot.clear_step_handler(player.message)
+        bot.clear_step_handler(opponent.message)
+
+        handle_start(player.message)
+        handle_start(opponent.message)
+
+        updateUser(player.chat_id, Status.MAIN_MENU, 0, None, 0)
+        updateUser(opponent.chat_id, Status.MAIN_MENU, 0, None, 0)
+
+        return
+
+    sent = bot.send_message(player.chat_id, "{} + {} = ?".format(a[0], b[0]), reply_markup=None)
+    bot.register_next_step_handler(sent, answerFun, a[0] + b[0], opponent, a, b)
+
+
+def answerFun(message, answer, opponent, a, b):
+    if message.text == str(answer):
+        updateUser(message.chat.id, status=Status.GAME, game_id=opponent.game_id, message=message,
+                   points=getUser(message.chat.id).points + 1)
+
+        bot.send_message(opponent.chat_id, 'Opponent decided right ({}/5)'.format(getUser(message.chat.id).points))
+        bot.send_message(message.chat.id, 'Right! You have ({}/5) points!'.format(getUser(message.chat.id).points))
+    else:
+        bot.send_message(opponent.chat_id, 'Opponent decided wrong ({}/5)'.format(getUser(message.chat.id).points))
+        bot.send_message(message.chat.id, 'Wrong! You have ({}/5) points!'.format(getUser(message.chat.id).points))
+    a.pop(0)
+    b.pop(0)
+    game(getUser(message.chat.id), opponent, a, b)
 
 
 @bot.message_handler(commands=['cancel'])
