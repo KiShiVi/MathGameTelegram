@@ -65,9 +65,9 @@ def handle_start(message):
 def handle_id_generator(message):
     print(str(message.chat.id) + ' ' + message.text)
 
-    gameID = randrange(1000, 9999)
+    gameID = randrange(1000, 10000)
     while gameID in startedGamesID:
-        gameID = randrange(1000, 9999)
+        gameID = randrange(1000, 10000)
 
     startedGamesID.add(str(gameID))
 
@@ -109,16 +109,18 @@ def checkPin(message):
 def preGame(player1, player2):
     # if player1.points >= 5 or player2.points >= 2:
     #     raise Exception('coming soon')
-    a1 = [randrange(10, 99) for i in range(20)]
-    b1 = [randrange(10, 99) for i in range(20)]
+    a1 = [randrange(10, 100) for i in range(20)]
+    b1 = [randrange(10, 100) for i in range(20)]
+    c1 = [randrange(0, 2) for i in range(20)]
     a2 = a1.copy()
     b2 = b1.copy()
-    game(player1, player2, a1, b1)
-    game(player2, player1, a2, b2)
+    c2 = c1.copy()
+    game(player1, player2, a1, b1, c1)
+    game(player2, player1, a2, b2, c2)
 
 
-def game(player, opponent, a, b):
-    if player.points >= 5 and getOpponent(opponent.game_id, player.chat_id).points >= 5:
+def game(player, opponent, a, b, c):
+    if getUser(player.chat_id).points >= 5 and getOpponent(opponent.game_id, player.chat_id).points >= 5:
         bot.send_message(player.chat_id, 'Draw!')
 
         bot.clear_step_handler(player.message)
@@ -126,14 +128,15 @@ def game(player, opponent, a, b):
 
         handle_start(player.message)
 
-        startedGamesID.remove(player.game_id)
+        if player.game_id in startedGamesID:
+            startedGamesID.remove(player.game_id)
 
         updateUser(player.chat_id, Status.MAIN_MENU, 0, None, 0)
         updateUser(opponent.chat_id, Status.MAIN_MENU, 0, None, 0)
 
         return
 
-    elif player.points >= 5:
+    elif getUser(player.chat_id).points >= 5 >= 5:
         bot.send_message(opponent.chat_id, 'You Lose!')
         bot.send_message(player.chat_id, 'You Win!')
 
@@ -143,18 +146,41 @@ def game(player, opponent, a, b):
         handle_start(player.message)
         handle_start(opponent.message)
 
-        startedGamesID.remove(player.game_id)
+        if player.game_id in startedGamesID:
+            startedGamesID.remove(player.game_id)
 
         updateUser(player.chat_id, Status.MAIN_MENU, 0, None, 0)
         updateUser(opponent.chat_id, Status.MAIN_MENU, 0, None, 0)
 
         return
 
-    sent = bot.send_message(player.chat_id, "{} + {} = ?".format(a[0], b[0]), reply_markup=None)
-    bot.register_next_step_handler(sent, answerFun, a[0] + b[0], opponent, a, b)
+    # markup = types.InlineKeyboardMarkup()
+    # item1 = types.InlineKeyboardButton("1", callback_data="1")
+    # item2 = types.InlineKeyboardButton("2", callback_data="2")
+    # item3 = types.InlineKeyboardButton("3", callback_data="3")
+    # item4 = types.InlineKeyboardButton("4", callback_data="4")
+    # item5 = types.InlineKeyboardButton("5", callback_data="5")
+    # item6 = types.InlineKeyboardButton("6", callback_data="6")
+    # item7 = types.InlineKeyboardButton("7", callback_data="7")
+    # item8 = types.InlineKeyboardButton("8", callback_data="8")
+    # item9 = types.InlineKeyboardButton("9", callback_data="9")
+    # #itemX = types.InlineKeyboardButton("/cancel")
+    # item0 = types.InlineKeyboardButton("0", callback_data="0")
+    # #itemOK = types.InlineKeyboardButton("OK")
+    # markup.row(item1, item2, item3)
+    # markup.row(item4, item5, item6)
+    # markup.row(item7, item8, item9)
+    # markup.row(item0)
+
+    if c[0] == 0:
+        sent = bot.send_message(player.chat_id, "{} + {} = ?".format(a[0], b[0]), reply_markup=None)
+        bot.register_next_step_handler(sent, answerFun, a[0] + b[0], opponent, a, b, c)
+    elif c[0] == 1:
+        sent = bot.send_message(player.chat_id, "{} - {} = ?".format(a[0], b[0]), reply_markup=None)
+        bot.register_next_step_handler(sent, answerFun, a[0] - b[0], opponent, a, b, c)
 
 
-def answerFun(message, answer, opponent, a, b):
+def answerFun(message, answer, opponent, a, b, c):
     if message.text == str(answer):
         updateUser(message.chat.id, status=Status.GAME, game_id=opponent.game_id, message=message,
                    points=getUser(message.chat.id).points + 1)
@@ -163,10 +189,12 @@ def answerFun(message, answer, opponent, a, b):
         bot.send_message(message.chat.id, 'Right! You have ({}/5) points!'.format(getUser(message.chat.id).points))
     else:
         bot.send_message(opponent.chat_id, 'Opponent decided wrong ({}/5)'.format(getUser(message.chat.id).points))
-        bot.send_message(message.chat.id, 'Wrong! You have ({}/5) points!'.format(getUser(message.chat.id).points))
+        bot.send_message(message.chat.id, 'Wrong! You have ({}/5) points!'
+                                          ' Answer: {}'.format(getUser(message.chat.id).points, answer))
     a.pop(0)
     b.pop(0)
-    game(getUser(message.chat.id), opponent, a, b)
+    c.pop(0)
+    game(getUser(message.chat.id), opponent, a, b, c)
 
 
 @bot.message_handler(commands=['cancel'])
