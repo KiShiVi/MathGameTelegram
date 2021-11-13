@@ -95,6 +95,8 @@ def checkPin(message):
         ###
         bot.send_message(message.chat.id, 'Game found!')
         bot.send_message(getOpponent(message.text, message.chat.id).chat_id, 'Game found!')
+        updateUser(message.chat.id, Status.GAME, getUser(message.chat.id).game_id)
+        updateUser(getOpponent(message.text, message.chat.id).chat_id, Status.GAME, getUser(message.chat.id).game_id)
 
 
 @bot.message_handler(commands=['cancel'])
