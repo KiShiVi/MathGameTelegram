@@ -126,6 +126,8 @@ def game(player, opponent, a, b):
 
         handle_start(player.message)
 
+        startedGamesID.remove(player.game_id)
+
         updateUser(player.chat_id, Status.MAIN_MENU, 0, None, 0)
         updateUser(opponent.chat_id, Status.MAIN_MENU, 0, None, 0)
 
@@ -140,6 +142,8 @@ def game(player, opponent, a, b):
 
         handle_start(player.message)
         handle_start(opponent.message)
+
+        startedGamesID.remove(player.game_id)
 
         updateUser(player.chat_id, Status.MAIN_MENU, 0, None, 0)
         updateUser(opponent.chat_id, Status.MAIN_MENU, 0, None, 0)
