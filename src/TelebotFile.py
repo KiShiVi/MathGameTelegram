@@ -111,7 +111,7 @@ def preGame(player1, player2):
     #     raise Exception('coming soon')
     a1 = [randrange(10, 100) for i in range(20)]
     b1 = [randrange(10, 100) for i in range(20)]
-    c1 = [randrange(0, 2) for i in range(20)]
+    c1 = [randrange(0, 3) for i in range(20)]
     a2 = a1.copy()
     b2 = b1.copy()
     c2 = c1.copy()
@@ -176,8 +176,11 @@ def game(player, opponent, a, b, c):
         sent = bot.send_message(player.chat_id, "{} + {} = ?".format(a[0], b[0]), reply_markup=None)
         bot.register_next_step_handler(sent, answerFun, a[0] + b[0], opponent, a, b, c)
     elif c[0] == 1:
-        sent = bot.send_message(player.chat_id, "{} - {} = ?".format(a[0], b[0]), reply_markup=None)
-        bot.register_next_step_handler(sent, answerFun, a[0] - b[0], opponent, a, b, c)
+        sent = bot.send_message(player.chat_id, "{} - {} = ?".format(max(a[0], b[0]), min(a[0], b[0])), reply_markup=None)
+        bot.register_next_step_handler(sent, answerFun, max(a[0], b[0]) - min(a[0], b[0]), opponent, a, b, c)
+    elif c[0] == 2:
+        sent = bot.send_message(player.chat_id, "{} * {} = ?".format(a[0], b[0] % 10 + 1), reply_markup=None)
+        bot.register_next_step_handler(sent, answerFun, a[0] * (b[0] % 10 + 1), opponent, a, b, c)
 
 
 def answerFun(message, answer, opponent, a, b, c):
