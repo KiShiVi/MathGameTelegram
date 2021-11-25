@@ -1,2 +1,1 @@
-# TicTacToeTelegram
-tic-tac-toe game in TelegramBot
+# MathGame in Telegram
